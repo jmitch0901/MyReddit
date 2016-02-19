@@ -13,29 +13,56 @@ app.controller('RedditCtrl',['$scope','$http',function($scope,$http){
 
   $scope.stories = [];
 
+
+  var redditRequest = function(params,callback){
+
+    $http.get('http://www.reddit.com/r/funny/new/.json',{params:params})
+    .success(function(response){
+
+      var stories = [];
+      angular.forEach(response.data.children,function(child){
+        stories.push(child.data);
+      });
+
+      callback(stories);
+    });
+
+  };
+
   $scope.loadOlderStories = function(){
     var params = {};
-
     if($scope.stories.length > 0){
       params['after'] = $scope.stories[$scope.stories.length -1].name;
     }
 
-    $http.get('http://www.reddit.com/r/Android/new/.json',{params:params})
-    .success(function(response){
-      //console.log(response.data.children);
-      angular.forEach(response.data.children,function(child){
-        //console.log(child.data);
-        $scope.stories.push(child.data);
-      });
+    redditRequest(params,function(oldStories){
+      $scope.stories = $scope.stories.concat(oldStories);
       $scope.$broadcast('scroll.infiniteScrollComplete');
     });
   };
 
-  $scope.onRefresh = function(){
+  $scope.doRefresh = function(){
+    var params = {};
+    params['before'] = $scope.stories[0].name;
+
+    redditRequest(params,function(newStories){
+      $scope.stories = newStories.concat($scope.stories);
+      $scope.$broadcast('scroll.refreshComplete');
+    });
+
+    $scope.openLink = function(url){
+      window.open(url,'_blank');
+    };
+
 
   };
 
 }]);
+
+
+
+
+
 
 app.run(function($ionicPlatform) {
   $ionicPlatform.ready(function() {
@@ -49,6 +76,15 @@ app.run(function($ionicPlatform) {
       // a much nicer keyboard experience.
       cordova.plugins.Keyboard.disableScroll(true);
     }
+
+
+    //Determines if we are on a mobile device (like android) or not.
+    //If we are on android, overide the definition of window.open.
+    if(window.cordova && window.cordova.InAppBrowser){
+      window.open = window.cordova.InAppBrowser.open;
+    }
+
+
     if(window.StatusBar) {
       StatusBar.styleDefault();
     }
