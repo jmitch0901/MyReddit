@@ -6,21 +6,34 @@
 (function(){
 
 
-var app = angular.module('MyRedditApp', ['ionic']);
+var app = angular.module('MyRedditApp', ['ionic','angularMoment']);
 
 
 app.controller('RedditCtrl',['$scope','$http',function($scope,$http){
 
   $scope.stories = [];
 
-  $http.get('http://www.reddit.com/r/Android/new/.json')
-  .success(function(response){
-    //console.log(response.data.children);
-    angular.forEach(response.data.children,function(child){
-      //console.log(child.data);
-      $scope.stories.push(child.data);
+  $scope.loadOlderStories = function(){
+    var params = {};
+
+    if($scope.stories.length > 0){
+      params['after'] = $scope.stories[$scope.stories.length -1].name;
+    }
+
+    $http.get('http://www.reddit.com/r/Android/new/.json',{params:params})
+    .success(function(response){
+      //console.log(response.data.children);
+      angular.forEach(response.data.children,function(child){
+        //console.log(child.data);
+        $scope.stories.push(child.data);
+      });
+      $scope.$broadcast('scroll.infiniteScrollComplete');
     });
-  });
+  };
+
+  $scope.onRefresh = function(){
+
+  };
 
 }]);
 
